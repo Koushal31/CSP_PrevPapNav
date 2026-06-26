@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Community – PapersNav{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="section-container">
+    <h1><i class="fas fa-comments"></i> Student Community</h1>
+    <p>Ask questions, share tips and discuss exams with fellow students.</p>
+  </div>
+</section>
+
+<section class="community-section">
+  <div class="community-container">
+
+    <div class="community-bar">
+      <div class="sort-tabs">
+        <a href="{{ url_for('community.index', sort='new') }}" class="sort-tab {% if sort != 'top' %}active{% endif %}"><i class="fas fa-clock"></i> New</a>
+        <a href="{{ url_for('community.index', sort='top') }}" class="sort-tab {% if sort == 'top' %}active{% endif %}"><i class="fas fa-fire"></i> Top</a>
+      </div>
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('community.new') }}" class="btn-primary"><i class="fas fa-plus"></i> New Post</a>
+      {% else %}
+        <a href="{{ url_for('auth.login', next=url_for('community.new')) }}" class="btn-outline"><i class="fas fa-plus"></i> New Post</a>
+      {% endif %}
+    </div>
+
+    {% if posts %}
+      <div class="post-list">
+        {% for post in posts %}
+          <div class="post-card">
+            <div class="post-vote {% if post._id in (session.get('voted_posts') or []) %}{% endif %}">
+              <button class="vote-btn {% if user_id and user_id in post.upvoted_by %}active{% endif %}"
+                      type="button" data-post-id="{{ post._id }}" {% if not user_id %}data-guest="1"{% endif %}
+                      aria-label="Upvote">
+                <i class="fas fa-arrow-up"></i>
+              </button>
+              <span class="vote-count" data-post-id="{{ post._id }}">{{ post.upvotes_count }}</span>
+            </div>
+            <div class="post-main">
+              <a href="{{ url_for('community.view', post_id=post._id) }}" class="post-title">{{ post.title }}</a>
+              <div class="post-meta">
+                <span><i class="fas fa-user-circle"></i> {{ post.author_name }}</span>
+                <span><i class="fas fa-clock"></i> {{ post.created_at.strftime('%d %b %Y') if post.created_at else '' }}</span>
+                <span><i class="fas fa-comment"></i> {{ post.comments_count }} comment{% if post.comments_count != 1 %}s{% endif %}</span>
+              </div>
+              {% if post.body %}<p class="post-snippet">{{ post.body[:180] }}{% if post.body|length > 180 %}…{% endif %}</p>{% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if total_pages > 1 %}
+        <nav class="pagination">
+          {% if page > 1 %}
+            <a class="page-link" href="{{ url_for('community.index', sort=sort, page=page-1) }}"><i class="fas fa-chevron-left"></i> Prev</a>
+          {% else %}<span class="page-link disabled"><i class="fas fa-chevron-left"></i> Prev</span>{% endif %}
+          <span class="page-status">Page {{ page }} of {{ total_pages }}</span>
+          {% if page < total_pages %}
+            <a class="page-link" href="{{ url_for('community.index', sort=sort, page=page+1) }}">Next <i class="fas fa-chevron-right"></i></a>
+          {% else %}<span class="page-link disabled">Next <i class="fas fa-chevron-right"></i></span>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state">
+        <i class="fas fa-comments"></i>
+        <h3>No posts yet</h3>
+        <p>Be the first to start a discussion.
+          {% if session.get('user_id') %}<a href="{{ url_for('community.new') }}">Create a post</a>.{% else %}<a href="{{ url_for('auth.login') }}">Log in</a> to post.{% endif %}
+        </p>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+document.querySelectorAll('.vote-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    if (btn.dataset.guest) { window.location = "{{ url_for('auth.login') }}"; return; }
+    const id = btn.dataset.postId;
+    try {
+      const resp = await fetch(`/community/post/${encodeURIComponent(id)}/upvote`, {
+        method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF }
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) { alert(data.error || 'Vote failed'); return; }
+      const countEl = document.querySelector(`.vote-count[data-post-id="${id}"]`);
+      if (countEl && typeof data.upvotes_count !== 'undefined') countEl.textContent = data.upvotes_count;
+      btn.classList.toggle('active', !!data.upvoted);
+    } catch (e) { alert('Vote failed'); }
+  });
+});
+</script>
+{% endblock %}

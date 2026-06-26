@@ -1,0 +1,85 @@
+{% extends "admin/base.html" %}
+{% block title %}Subjects – Admin PapersNav{% endblock %}
+{% block page_title %}Subjects Management{% endblock %}
+{% block content %}
+
+<div class="admin-add-form">
+  <h3><i class="fas fa-plus-circle"></i> Add New Subject</h3>
+  <form method="POST" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="text" name="name" placeholder="Subject Name" required/>
+    <select name="college_code" id="subjectCollege" required>
+      <option value="">Select College</option>
+      {% for c in colleges %}
+        <option value="{{ c.code }}">{{ c.name }} ({{ c.code }})</option>
+      {% endfor %}
+    </select>
+    <select name="branch_code" id="subjectBranch" required disabled>
+      <option value="">Select Branch</option>
+      {% for b in branches %}
+        <option value="{{ b.code }}" data-college="{{ b.college_code }}">{{ b.name }} ({{ b.code }}) — {{ b.college_code }}</option>
+      {% endfor %}
+    </select>
+    <input type="number" name="semester" placeholder="Semester" required min="1" max="10"/>
+    <button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Add</button>
+  </form>
+</div>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr><th>#</th><th>Subject</th><th>College</th><th>Branch</th><th>Semester</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for s in subjects %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ s.name }}</strong></td>
+          <td>{{ s.college_name or s.college_code or '–' }}</td>
+          <td><span class="badge">{{ s.branch_name or s.branch_code }}</span></td>
+          <td>{{ s.semester }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.delete_subject', subject_id=s._id) }}" onsubmit="return confirm('Delete this subject?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button class="btn-delete"><i class="fas fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const subjectCollege = document.getElementById('subjectCollege');
+  const subjectBranch = document.getElementById('subjectBranch');
+
+  function filterSubjectBranches() {
+    const selectedCollege = subjectCollege.value;
+    subjectBranch.value = '';
+    let hasVisible = false;
+
+    Array.from(subjectBranch.options).forEach(option => {
+      if (!option.value) {
+        option.hidden = false;
+        return;
+      }
+      const branchCollege = option.dataset.college || '';
+      const show = selectedCollege && branchCollege === selectedCollege;
+      option.hidden = !show;
+      if (show) {
+        hasVisible = true;
+      }
+    });
+
+    subjectBranch.disabled = !hasVisible;
+    if (!hasVisible) {
+      subjectBranch.value = '';
+    }
+  }
+
+  subjectCollege?.addEventListener('change', filterSubjectBranches);
+  document.addEventListener('DOMContentLoaded', filterSubjectBranches);
+</script>
+
+{% endblock %}

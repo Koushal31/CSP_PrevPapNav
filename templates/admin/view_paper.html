@@ -1,0 +1,75 @@
+{% extends "admin/base.html" %}
+{% block title %}View Paper – Admin PapersNav{% endblock %}
+{% block page_title %}Review Paper{% endblock %}
+{% block content %}
+<div class="admin-section">
+  <div class="section-title-row">
+    <div>
+      <h2>{{ paper.subject }}</h2>
+      <p class="section-sub">{{ paper.college }} · {{ paper.branch }} · Semester {{ paper.semester }} · {{ paper.year }}</p>
+    </div>
+    <div>
+      <a href="{{ url_for('admin.papers') }}" class="btn-ghost">Back to Papers</a>
+    </div>
+  </div>
+
+  <div class="admin-grid">
+    <div class="paper-detail-card">
+      <div class="paper-detail-icon"><i class="fas fa-file-pdf"></i></div>
+      <h3>{{ paper.subject }}</h3>
+      <div class="paper-detail-meta">
+        <div class="meta-row"><i class="fas fa-university"></i><span>{{ paper.college }}</span></div>
+        <div class="meta-row"><i class="fas fa-code-branch"></i><span>{{ paper.branch }}</span></div>
+        <div class="meta-row"><i class="fas fa-layer-group"></i><span>Semester {{ paper.semester }}</span></div>
+        <div class="meta-row"><i class="fas fa-calendar"></i><span>{{ paper.year }}</span></div>
+        <div class="meta-row"><i class="fas fa-download"></i><span>{{ paper.downloads or 0 }} downloads</span></div>
+        <div class="meta-row"><i class="fas fa-user"></i><span>Uploaded by: <strong>{{ paper.uploaded_by_name or paper.uploaded_by or 'Unknown' }}</strong></span></div>
+        <div class="meta-row"><i class="fas fa-thumbs-up"></i><span>Votes: <strong>{{ paper.upvotes_count or 0 }}</strong></span></div>
+        <div class="meta-row"><i class="fas fa-clock"></i><span>Status: <strong>{{ paper.status }}</strong></span></div>
+      </div>
+
+      <div class="admin-action-row">
+        {% if paper.status == 'pending' %}
+          <form method="POST" action="{{ url_for('admin.approve_paper', paper_id=paper._id) }}" style="display:inline-block">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button class="btn-approve">Approve</button>
+          </form>
+          <form method="POST" action="{{ url_for('admin.reject_paper', paper_id=paper._id) }}" style="display:inline-block">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button class="btn-reject">Reject</button>
+          </form>
+        {% elif paper.status == 'rejected' %}
+          <form method="POST" action="{{ url_for('admin.approve_paper', paper_id=paper._id) }}" style="display:inline-block">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button class="btn-approve">Approve</button>
+          </form>
+        {% endif %}
+        {% if paper.filename %}
+          <a href="{{ url_for('admin.download_paper', paper_id=paper._id) }}" class="btn-sm">Download PDF</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="paper-preview-card">
+      {% if paper.filename %}
+        <div class="pdf-viewer-wrapper">
+          <div class="pdf-toolbar">
+            <span><i class="fas fa-file-pdf"></i> {{ paper.subject }}.pdf</span>
+            <a href="{{ url_for('admin.download_paper', paper_id=paper._id) }}" class="btn-sm">
+              <i class="fas fa-download"></i> Download
+            </a>
+          </div>
+          <iframe src="{{ url_for('static', filename='uploads/' + paper.filename) }}"
+                  width="100%" height="700" style="border:none;border-radius:0 0 12px 12px;"></iframe>
+        </div>
+      {% else %}
+        <div class="preview-placeholder">
+          <i class="fas fa-file-pdf"></i>
+          <h3>No attached PDF</h3>
+          <p>This paper record has no file uploaded. Use the metadata above to verify before approving.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} – PapersNav{% endblock %}
+{% block content %}
+
+<section class="error-section">
+  <div class="section-container">
+    <div class="error-container">
+      <h1 class="error-code">{{ code }}</h1>
+      <h2 class="error-title">
+        {% if code == 404 %}
+          Page Not Found
+        {% elif code == 403 %}
+          Access Denied
+        {% else %}
+          Server Error
+        {% endif %}
+      </h2>
+      <p class="error-message">{{ message }}</p>
+      <div class="error-actions">
+        <a href="{{ url_for('main.home') }}" class="btn-primary"><i class="fas fa-home"></i> Go Home</a>
+        <a href="{{ url_for('papers.browse') }}" class="btn-outline"><i class="fas fa-search"></i> Browse Papers</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.error-section {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 40px 20px;
+}
+
+.error-container {
+  text-align: center;
+  background: white;
+  padding: 60px 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  max-width: 600px;
+}
+
+.error-code {
+  font-size: 120px;
+  font-weight: 900;
+  color: #e74c3c;
+  margin: 0;
+  line-height: 1;
+}
+
+.error-title {
+  font-size: 32px;
+  color: #2c3e50;
+  margin: 20px 0;
+}
+
+.error-message {
+  font-size: 18px;
+  color: #7f8c8d;
+  margin: 20px 0 40px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Papers – Admin PapersNav{% endblock %}
+{% block page_title %}Papers Management{% endblock %}
+{% block content %}
+
+<div class="filter-tabs" style="margin-bottom:1.5rem">
+  <a href="{{ url_for('admin.papers') }}" class="ftab {% if status_filter=='all' %}active{% endif %}">All</a>
+  <a href="{{ url_for('admin.papers') }}?status=approved" class="ftab {% if status_filter=='approved' %}active{% endif %}">Approved</a>
+  <a href="{{ url_for('admin.papers') }}?status=pending" class="ftab {% if status_filter=='pending' %}active{% endif %}">Pending</a>
+  <a href="{{ url_for('admin.papers') }}?status=rejected" class="ftab {% if status_filter=='rejected' %}active{% endif %}">Rejected</a>
+</div>
+
+{% if papers %}
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>College</th>
+          <th>Branch</th>
+          <th>Sem</th>
+          <th>Year</th>
+          <th>Uploaded By</th>
+          <th>Status</th>
+          <th>Downloads</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in papers %}
+          <tr>
+            <td><strong>{{ p.subject }}</strong></td>
+            <td>{{ p.college }}</td>
+            <td><span class="badge">{{ p.branch }}</span></td>
+            <td>{{ p.semester }}</td>
+            <td>{{ p.year }}</td>
+            <td class="email-cell">{{ p.uploaded_by }}</td>
+            <td>
+              <span class="status-pill status-{{ p.status }}">{{ p.status }}</span>
+            </td>
+            <td>{{ p.downloads or 0 }}</td>
+            <td class="action-cell">
+              <a href="{{ url_for('admin.view_paper', paper_id=p._id) }}" class="btn-sm">View</a>
+              {% if p.status == 'pending' %}
+                <form method="POST" action="{{ url_for('admin.approve_paper', paper_id=p._id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button class="btn-approve">✓</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.reject_paper', paper_id=p._id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button class="btn-reject">✗</button>
+                </form>
+              {% elif p.status == 'rejected' %}
+                <form method="POST" action="{{ url_for('admin.approve_paper', paper_id=p._id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button class="btn-approve">Approve</button>
+                </form>
+              {% elif p.status == 'approved' %}
+                <form method="POST" action="{{ url_for('admin.reject_paper', paper_id=p._id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button class="btn-reject">Reject</button>
+                </form>
+              {% endif %}
+              <form method="POST" action="{{ url_for('admin.delete_paper', paper_id=p._id) }}" style="display:inline"
+                    onsubmit="return confirm('Delete this paper permanently?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button class="btn-delete"><i class="fas fa-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="admin-empty"><i class="fas fa-file-pdf"></i> No papers found for this filter.</div>
+{% endif %}
+
+{% endblock %}

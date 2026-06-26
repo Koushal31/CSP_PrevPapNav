@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+{% block title %}Colleges – Admin PapersNav{% endblock %}
+{% block page_title %}Colleges Management{% endblock %}
+{% block content %}
+
+<div class="admin-add-form">
+  <h3><i class="fas fa-plus-circle"></i> Add New College</h3>
+  <form method="POST" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="text" name="name" placeholder="College Name" required/>
+    <input type="text" name="code" placeholder="Code (e.g. AU)" required maxlength="10"/>
+    <input type="text" name="city" placeholder="City"/>
+    <button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Add</button>
+  </form>
+</div>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr><th>#</th><th>College Name</th><th>Code</th><th>City</th><th>Papers</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for c in colleges %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ c.name }}</strong></td>
+          <td><span class="badge">{{ c.code }}</span></td>
+          <td>{{ c.city or '–' }}</td>
+          <td>{{ c.paper_count }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.delete_college', college_id=c._id) }}"
+                  onsubmit="return confirm('Delete {{ c.name }}? This won\'t delete its papers.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button class="btn-delete"><i class="fas fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

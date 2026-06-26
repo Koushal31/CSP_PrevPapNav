@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Verify Email – PapersNav{% endblock %}
+{% block content %}
+
+<section class="auth-section">
+  <div class="auth-container auth-narrow">
+
+    <div class="auth-brand">
+      <i class="fas fa-envelope-open-text"></i>
+      <h2>Verify your email</h2>
+      <p>We sent a 6-digit code to<br/><strong>{{ email }}</strong></p>
+    </div>
+
+    {% if error %}
+      <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+    {% endif %}
+    {% if delivered is defined and not delivered %}
+      <div class="alert alert-error">
+        <i class="fas fa-exclamation-circle"></i>
+        Email isn't configured on the server, so the code couldn't be emailed.
+      </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('auth.verify_otp') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="email" value="{{ email }}"/>
+      <div class="form-group">
+        <label>Verification code</label>
+        <input type="text" name="otp" inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required
+               class="otp-input" autofocus/>
+      </div>
+      <button type="submit" class="btn-primary btn-full btn-lg"><i class="fas fa-check"></i> Verify &amp; create account</button>
+    </form>
+
+    <form method="POST" action="{{ url_for('auth.resend_otp') }}" class="resend-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="email" value="{{ email }}"/>
+      <button type="submit" class="link-btn">Didn't get it? Resend code</button>
+    </form>
+
+    <p class="auth-switch"><a class="link-btn" href="{{ url_for('auth.register') }}">Use a different email</a></p>
+
+  </div>
+</section>
+
+{% endblock %}

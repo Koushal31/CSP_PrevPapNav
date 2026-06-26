@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block title %}Branches – Admin PapersNav{% endblock %}
+{% block page_title %}Branches Management{% endblock %}
+{% block content %}
+
+<div class="admin-add-form">
+  <h3><i class="fas fa-plus-circle"></i> Add New Branch</h3>
+  <form method="POST" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="text" name="name" placeholder="Branch Name" required/>
+    <input type="text" name="code" placeholder="Code (e.g. CSE)" required maxlength="10"/>
+    <select name="college_code" required>
+      <option value="">Select College</option>
+      {% for c in colleges %}
+        <option value="{{ c.code }}">{{ c.name }} ({{ c.code }})</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Add</button>
+  </form>
+</div>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr><th>#</th><th>Branch Name</th><th>Code</th><th>College</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for b in branches %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ b.name }}</strong></td>
+          <td><span class="badge">{{ b.code }}</span></td>
+          <td>{{ b.college_name or b.college_code or '–' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.delete_branch', branch_id=b._id) }}"
+                  onsubmit="return confirm('Delete this branch?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button class="btn-delete"><i class="fas fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

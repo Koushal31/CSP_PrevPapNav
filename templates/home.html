@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}PapersNav — Previous Year Question Papers{% endblock %}
+{% block content %}
+
+<!-- HERO -->
+<section class="hero">
+  <div class="section-container hero-inner">
+    <span class="hero-badge"><i class="fas fa-bolt"></i> Built for exam prep</span>
+    <h1>Previous year question papers,<br/><span class="gradient-text">all in one place</span></h1>
+    <p class="hero-sub">Search by college, branch, semester and subject. Download, rate and discuss papers — and help your juniors by sharing yours.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('papers.browse') }}" class="btn-primary btn-lg"><i class="fas fa-search"></i> Browse Papers</a>
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('papers.upload') }}" class="btn-outline btn-lg"><i class="fas fa-upload"></i> Upload a Paper</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn-outline btn-lg"><i class="fas fa-sign-in-alt"></i> Login / Register</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-strip">
+  <div class="stats-container">
+    <div class="stat-item">
+      <span class="stat-num">{{ total_papers }}+</span>
+      <span class="stat-label">Papers available</span>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat-item">
+      <span class="stat-num">{{ total_colleges }}+</span>
+      <span class="stat-label">Colleges</span>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat-item">
+      <span class="stat-num">{{ total_users }}+</span>
+      <span class="stat-label">Students</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-container">
+    <div class="section-header">
+      <h2>Everything you need to prepare</h2>
+      <p>One organised library, shared by students and verified by admins.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feat-icon red"><i class="fas fa-magnifying-glass"></i></div>
+        <h3>Smart Search</h3>
+        <p>Filter by college, branch, semester, subject and year, or search by keyword to find exactly what you need.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon green"><i class="fas fa-shield-halved"></i></div>
+        <h3>Verified Uploads</h3>
+        <p>Every uploaded paper is reviewed by an admin before it goes live, so the library stays clean and trustworthy.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon orange"><i class="fas fa-star"></i></div>
+        <h3>Ratings &amp; Comments</h3>
+        <p>See what others found useful, rate papers, and share tips with your classmates on each paper.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon blue"><i class="fas fa-bookmark"></i></div>
+        <h3>Save for Later</h3>
+        <p>Bookmark important papers and pick them back up any time from your profile.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon purple"><i class="fas fa-graduation-cap"></i></div>
+        <h3>College Sign-in</h3>
+        <p>Secure login with Google or your college email, so only genuine students can contribute.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon teal"><i class="fas fa-mobile-screen"></i></div>
+        <h3>Works Everywhere</h3>
+        <p>Read or download papers on your phone, tablet or laptop — the layout adapts to any screen.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works">
+  <div class="section-container">
+    <div class="section-header light">
+      <h2>How it works</h2>
+      <p>From search to download in three simple steps.</p>
+    </div>
+    <div class="steps-row">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Search</h3>
+        <p>Choose your college, branch and semester, then pick a subject.</p>
+      </div>
+      <i class="fas fa-arrow-right step-arrow"></i>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Download</h3>
+        <p>Open the PDF in your browser or download it to study offline.</p>
+      </div>
+      <i class="fas fa-arrow-right step-arrow"></i>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Contribute</h3>
+        <p>Upload papers you have and help the next batch of students.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-banner">
+  <div class="section-container">
+    <h2>Have papers to share?</h2>
+    <p>Upload your previous year papers and help your juniors prepare better.</p>
+    {% if session.get('user_id') %}
+      <a href="{{ url_for('papers.upload') }}" class="btn-primary btn-lg"><i class="fas fa-upload"></i> Upload a Paper</a>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}" class="btn-primary btn-lg"><i class="fas fa-sign-in-alt"></i> Get Started</a>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

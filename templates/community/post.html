@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} – Community{% endblock %}
+{% block content %}
+
+<section class="page-hero small">
+  <div class="section-container">
+    <a href="{{ url_for('community.index') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Community</a>
+  </div>
+</section>
+
+<section class="community-section">
+  <div class="community-narrow">
+
+    <article class="post-detail">
+      <div class="post-vote">
+        <button class="vote-btn {% if has_upvoted %}active{% endif %}" type="button"
+                data-post-id="{{ post._id }}" {% if not session.get('user_id') %}data-guest="1"{% endif %} aria-label="Upvote">
+          <i class="fas fa-arrow-up"></i>
+        </button>
+        <span class="vote-count" data-post-id="{{ post._id }}">{{ post.upvotes_count }}</span>
+      </div>
+      <div class="post-detail-main">
+        <h1>{{ post.title }}</h1>
+        <div class="post-meta">
+          <span><i class="fas fa-user-circle"></i> {{ post.author_name }}</span>
+          <span><i class="fas fa-clock"></i> {{ post.created_at.strftime('%d %b %Y, %H:%M') if post.created_at else '' }}</span>
+        </div>
+        {% if post.body %}<div class="post-body">{{ post.body }}</div>{% endif %}
+        {% if can_delete %}
+          <form method="POST" action="{{ url_for('community.delete', post_id=post._id) }}"
+                onsubmit="return confirm('Delete this post?')" class="post-delete">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button class="btn-delete-mine" type="submit"><i class="fas fa-trash"></i> Delete</button>
+          </form>
+        {% endif %}
+      </div>
+    </article>
+
+    <div class="comments-card">
+      <h3><i class="fas fa-comments"></i> {{ comments|length }} Comment{% if comments|length != 1 %}s{% endif %}</h3>
+
+      {% if session.get('user_id') %}
+        <form method="POST" action="{{ url_for('community.comment', post_id=post._id) }}" class="comment-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <textarea name="text" rows="3" maxlength="2000" placeholder="Add a comment…" required></textarea>
+          <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Comment</button>
+        </form>
+      {% else %}
+        <p class="comment-login-hint"><a href="{{ url_for('auth.login', next=request.path) }}">Log in</a> to comment.</p>
+      {% endif %}
+
+      <div class="comments-list">
+        {% for c in comments %}
+          <div class="comment">
+            <div class="comment-avatar">{{ (c.user_name or '?')[0]|upper }}</div>
+            <div class="comment-body">
+              <div class="comment-head">
+                <strong>{{ c.user_name }}</strong>
+                <span>{{ c.created_at.strftime('%d %b %Y, %H:%M') if c.created_at else '' }}</span>
+              </div>
+              <p>{{ c.text }}</p>
+            </div>
+          </div>
+        {% else %}
+          <p class="comments-empty">No comments yet — start the conversation.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+const btn = document.querySelector('.vote-btn');
+if (btn) {
+  btn.addEventListener('click', async () => {
+    if (btn.dataset.guest) { window.location = "{{ url_for('auth.login', next=request.path) }}"; return; }
+    const id = btn.dataset.postId;
+    try {
+      const resp = await fetch(`/community/post/${encodeURIComponent(id)}/upvote`, {
+        method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF }
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) { alert(data.error || 'Vote failed'); return; }
+      const countEl = document.querySelector(`.vote-count[data-post-id="${id}"]`);
+      if (countEl && typeof data.upvotes_count !== 'undefined') countEl.textContent = data.upvotes_count;
+      btn.classList.toggle('active', !!data.upvoted);
+    } catch (e) { alert('Vote failed'); }
+  });
+}
+</script>
+{% endblock %}

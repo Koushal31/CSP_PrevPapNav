@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Upload Paper – PapersNav{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="section-container">
+    <h1><i class="fas fa-upload"></i> Upload Previous Paper</h1>
+    <p>Share question papers with your fellow students and help build the library.</p>
+  </div>
+</section>
+
+<section class="upload-section">
+  <div class="upload-container">
+    <div class="upload-card">
+      {% if error %}
+        <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+      {% endif %}
+      <form method="POST" enctype="multipart/form-data" id="uploadForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="form-row">
+          <div class="form-group">
+            <label>College <span class="req">*</span></label>
+            <select name="college" id="collegeSel" required>
+              <option value="">Select College</option>
+              {% for c in colleges %}
+                <option value="{{ c.code }}" {% if form_data.get('college') == c.code %}selected{% endif %}>{{ c.name }} ({{ c.code }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Branch <span class="req">*</span></label>
+            <select name="branch" id="branchSel" required>
+              <option value="">Select Branch</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Semester <span class="req">*</span></label>
+            <select name="semester" id="semSel" required>
+              <option value="">Select Semester</option>
+              {% for s in semesters %}
+                <option value="{{ s }}" {% if form_data.get('semester') == s|string %}selected{% endif %}>Semester {{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Year <span class="req">*</span></label>
+            <select name="year" required>
+              <option value="">Select Year</option>
+              {% for y in years %}
+                <option value="{{ y }}" {% if form_data.get('year') == y|string %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Subject <span class="req">*</span></label>
+          <select name="subject" id="subjectSel" required>
+            <option value="">Select Subject</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Upload PDF <span class="req">*</span></label>
+          <div class="file-drop-zone" id="dropZone">
+            <input type="file" name="pdf" id="pdfInput" accept=".pdf" required/>
+            <div class="drop-content" id="dropContent">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>Drag & drop PDF here or <span class="browse-link">browse</span></p>
+              <small>Maximum file size: 16 MB</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="upload-note">
+          <i class="fas fa-info-circle"></i>
+          <span>Uploaded papers go through admin review before being visible to all users.</span>
+        </div>
+
+        <button type="submit" class="btn-primary btn-full btn-lg">
+          <i class="fas fa-paper-plane"></i> Submit Paper
+        </button>
+      </form>
+    </div>
+
+    <div class="upload-tips">
+      <h3><i class="fas fa-lightbulb"></i> Tips for a good upload</h3>
+      <ul>
+        <li><i class="fas fa-check"></i> Make sure the PDF is clearly scanned (300 DPI or better).</li>
+        <li><i class="fas fa-check"></i> Include all pages of the question paper.</li>
+        <li><i class="fas fa-check"></i> Do not upload answer keys or notes — only question papers.</li>
+        <li><i class="fas fa-check"></i> Double-check the college, branch, semester, and year before submitting.</li>
+        <li><i class="fas fa-check"></i> Papers already on the platform may be rejected as duplicates.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+const collegeSel = document.getElementById('collegeSel');
+const branchSel = document.getElementById('branchSel');
+const semSel = document.getElementById('semSel');
+const subjectSel = document.getElementById('subjectSel');
+let allSubjects = [];
+const selectedBranch = "{{ form_data.get('branch','') if form_data else '' }}";
+const selectedSubject = "{{ form_data.get('subject','') if form_data else '' }}";
+
+async function loadBranches() {
+  const college = collegeSel.value;
+  if (!college) {
+    branchSel.innerHTML = '<option value="">Select Branch</option>';
+    branchSel.disabled = true;
+    return;
+  }
+
+  const resp = await fetch(`/api/branches?college=${encodeURIComponent(college)}`);
+  const branches = await resp.json();
+  branchSel.innerHTML = '<option value="">Select Branch</option>' +
+    branches.map(b => `<option value="${b.code}" ${b.code === selectedBranch ? 'selected' : ''}>${b.name} (${b.code})</option>`).join('');
+  branchSel.disabled = branches.length === 0;
+  if (selectedBranch) {
+    branchSel.value = selectedBranch;
+    await fetchSubjects();
+  }
+}
+
+async function fetchSubjects() {
+  if (!branchSel.value || !semSel.value) {
+    subjectSel.innerHTML = '<option value="">Select Subject</option>';
+    subjectSel.disabled = true;
+    return;
+  }
+
+  const resp = await fetch(`/api/subjects?college=${encodeURIComponent(collegeSel.value)}&branch=${encodeURIComponent(branchSel.value)}&semester=${encodeURIComponent(semSel.value)}`);
+  allSubjects = await resp.json();
+  
+  subjectSel.innerHTML = '<option value="">Select Subject</option>' +
+    allSubjects.map(s => `<option value="${s}" ${s === selectedSubject ? 'selected' : ''}>${s}</option>`).join('');
+  subjectSel.disabled = allSubjects.length === 0;
+}
+
+collegeSel.addEventListener('change', loadBranches);
+[branchSel, semSel].forEach(el => el.addEventListener('change', fetchSubjects));
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (collegeSel.value) {
+    loadBranches();
+  } else {
+    branchSel.disabled = true;
+    subjectSel.disabled = true;
+  }
+});
+
+
+const dropZone = document.getElementById('dropZone');
+const pdfInput = document.getElementById('pdfInput');
+const dropContent = document.getElementById('dropContent');
+
+dropZone.addEventListener('click', () => pdfInput.click());
+pdfInput.addEventListener('change', () => {
+  const file = pdfInput.files[0];
+  if (!file) return;
+  dropContent.innerHTML = `<i class="fas fa-file-pdf" style="color:var(--red)"></i><p><strong>${file.name}</strong></p><small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>`;
+});
+
+['dragover', 'dragenter'].forEach(eventName => {
+  dropZone.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    dropZone.classList.remove('drag-over');
+  });
+});
+
+dropZone.addEventListener('drop', (event) => {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    pdfInput.files = dt.files;
+    dropContent.innerHTML = `<i class="fas fa-file-pdf" style="color:var(--red)"></i><p><strong>${file.name}</strong></p><small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>`;
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+{% block title %}Messages – Admin PapersNav{% endblock %}
+{% block page_title %}Contact Messages{% endblock %}
+{% block content %}
+
+{% if messages %}
+  <div class="message-list">
+    {% for m in messages %}
+      <div class="message-card {% if m.resolved %}resolved{% endif %}">
+        <div class="message-head">
+          <div>
+            <strong>{{ m.subject }}</strong>
+            <span class="status-pill {% if m.resolved %}status-approved{% else %}status-pending{% endif %}">
+              {{ 'Resolved' if m.resolved else 'New' }}
+            </span>
+          </div>
+          <span class="message-date">{{ m.created_at.strftime('%d %b %Y, %H:%M') if m.created_at else '' }}</span>
+        </div>
+        <div class="message-from">
+          <i class="fas fa-user"></i> {{ m.name }} &nbsp;·&nbsp;
+          <a href="mailto:{{ m.email }}">{{ m.email }}</a>
+        </div>
+        <p class="message-body">{{ m.message }}</p>
+        <div class="message-actions">
+          <a href="mailto:{{ m.email }}?subject=Re: {{ m.subject }}" class="btn-sm"><i class="fas fa-reply"></i> Reply</a>
+          <form method="POST" action="{{ url_for('admin.resolve_message', message_id=m._id) }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button class="btn-approve">{{ 'Mark as new' if m.resolved else 'Mark resolved' }}</button>
+          </form>
+          <form method="POST" action="{{ url_for('admin.delete_message', message_id=m._id) }}" style="display:inline"
+                onsubmit="return confirm('Delete this message?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button class="btn-delete"><i class="fas fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="admin-empty"><i class="fas fa-inbox"></i> No messages yet.</div>
+{% endif %}
+
+{% endblock %}

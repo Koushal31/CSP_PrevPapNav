@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Contact – PapersNav{% endblock %}
+{% block content %}
+{% set form = form or {} %}
+
+<section class="page-hero">
+  <div class="section-container">
+    <h1><i class="fas fa-envelope"></i> Contact the Admin</h1>
+    <p>Questions, suggestions, or a paper taken down by mistake? Send us a message.</p>
+  </div>
+</section>
+
+<section class="contact-section">
+  <div class="contact-container">
+    <div class="contact-card">
+      <form method="POST" action="{{ url_for('main.contact') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Your Name <span class="req">*</span></label>
+            <input type="text" name="name" value="{{ form.get('name','') }}" required/>
+          </div>
+          <div class="form-group">
+            <label>Your Email <span class="req">*</span></label>
+            <input type="email" name="email" value="{{ form.get('email','') }}" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Subject</label>
+          <input type="text" name="subject" value="{{ form.get('subject','') }}" placeholder="What's this about?"/>
+        </div>
+        <div class="form-group">
+          <label>Message <span class="req">*</span></label>
+          <textarea name="message" rows="6" maxlength="4000" placeholder="Type your message…" required>{{ form.get('message','') }}</textarea>
+        </div>
+        <button type="submit" class="btn-primary btn-lg"><i class="fas fa-paper-plane"></i> Send Message</button>
+      </form>
+    </div>
+
+    <aside class="contact-aside">
+      <h3><i class="fas fa-circle-info"></i> Good to know</h3>
+      <ul>
+        <li><i class="fas fa-check"></i> Your message goes straight to the site admins.</li>
+        <li><i class="fas fa-check"></i> Include the paper name if it's about a specific upload.</li>
+        <li><i class="fas fa-check"></i> We'll reply to the email you provide.</li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+{% endblock %}

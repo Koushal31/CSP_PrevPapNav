@@ -1,0 +1,101 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard – Admin PapersNav{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="stats-cards">
+  <div class="stat-card">
+    <div class="sc-icon blue"><i class="fas fa-file-pdf"></i></div>
+    <div class="sc-info">
+      <span class="sc-num">{{ total_papers }}</span>
+      <span class="sc-label">Total Papers</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon orange"><i class="fas fa-clock"></i></div>
+    <div class="sc-info">
+      <span class="sc-num">{{ pending_papers }}</span>
+      <span class="sc-label">Pending Review</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon green"><i class="fas fa-users"></i></div>
+    <div class="sc-info">
+      <span class="sc-num">{{ total_users }}</span>
+      <span class="sc-label">Total Users</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon purple"><i class="fas fa-university"></i></div>
+    <div class="sc-info">
+      <span class="sc-num">{{ total_colleges }}</span>
+      <span class="sc-label">Colleges</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon red"><i class="fas fa-code-branch"></i></div>
+    <div class="sc-info">
+      <span class="sc-num">{{ total_branches }}</span>
+      <span class="sc-label">Branches</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon teal"><i class="fas fa-book"></i></div>
+    <div class="sc-info">
+      <span class="sc-num">{{ total_subjects }}</span>
+      <span class="sc-label">Subjects</span>
+    </div>
+  </div>
+</div>
+
+<div class="admin-section">
+  <div class="section-title-row">
+    <h2>Recent Pending Papers</h2>
+    <a href="{{ url_for('admin.papers') }}?status=pending" class="btn-sm">View All</a>
+  </div>
+
+  {% if recent_pending %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>College</th>
+            <th>Branch</th>
+            <th>Sem</th>
+            <th>Year</th>
+            <th>Uploaded By</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in recent_pending %}
+            <tr>
+              <td><strong>{{ p.subject }}</strong></td>
+              <td>{{ p.college }}</td>
+              <td><span class="badge">{{ p.branch }}</span></td>
+              <td>{{ p.semester }}</td>
+              <td>{{ p.year }}</td>
+              <td class="email-cell">{{ p.uploaded_by }}</td>
+              <td class="action-cell">
+                <a href="{{ url_for('admin.view_paper', paper_id=p._id) }}" class="btn-sm">View</a>
+                <form method="POST" action="{{ url_for('admin.approve_paper', paper_id=p._id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button class="btn-approve">Approve</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.reject_paper', paper_id=p._id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button class="btn-reject">Reject</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="admin-empty"><i class="fas fa-check-circle"></i> No pending papers — you're all caught up!</div>
+  {% endif %}
+</div>
+
+{% endblock %}

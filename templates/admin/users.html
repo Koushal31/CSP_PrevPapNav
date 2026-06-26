@@ -1,0 +1,50 @@
+{% extends "admin/base.html" %}
+{% block title %}Users – Admin PapersNav{% endblock %}
+{% block page_title %}Users Management{% endblock %}
+{% block content %}
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>#</th><th>Name</th><th>Email</th><th>College</th><th>Role</th><th>Joined</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ u.name }}</strong></td>
+          <td class="email-cell">{{ u.email }}</td>
+          <td>{{ u.college or '–' }}</td>
+          <td>
+            {# role pill styling only exists for admin/student in CSS; teacher will fallback to default pill #}
+            <span class="role-pill role-{{ u.role }}">{{ u.role }}</span>
+          </td>
+          <td>{{ u.created_at.strftime('%d %b %Y') if u.created_at else '–' }}</td>
+          <td>
+            {% if u.role == 'admin' %}
+              <span style="color:var(--text-muted);font-size:.8rem">Protected</span>
+            {% else %}
+              <div class="action-cell" style="justify-content:flex-start;">
+                <form method="POST" action="{{ url_for('admin.promote_to_admin', user_id=u._id) }}"
+                      onsubmit="return confirm('Make {{ u.name }} an admin?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button class="btn-approve" type="submit" aria-label="Promote to admin"><i class="fas fa-user-shield"></i></button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.delete_user', user_id=u._id) }}"
+                      onsubmit="return confirm('Delete user {{ u.name }}?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button class="btn-delete" type="submit" aria-label="Delete user"><i class="fas fa-trash"></i></button>
+                </form>
+              </div>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+

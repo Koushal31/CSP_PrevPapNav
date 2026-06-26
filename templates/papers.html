@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Find Previous Papers – PapersNav{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="section-container">
+    <h1><i class="fas fa-search"></i> Find Previous Papers</h1>
+    <p>Filter by college, branch, semester, subject, and year</p>
+  </div>
+</section>
+
+<section class="papers-section">
+  <div class="section-container">
+
+    <!-- FILTER FORM -->
+    <div class="filter-card">
+      <form method="GET" action="{{ url_for('papers.browse') }}" id="filterForm">
+
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" name="q" value="{{ filters.q }}"
+                 placeholder="Search by subject, college or branch…" autocomplete="off"/>
+        </div>
+
+        <div class="filter-grid">
+          <div class="filter-group">
+            <label>College</label>
+            <select name="college" id="collegeSelect">
+              <option value="">All Colleges</option>
+              {% for c in colleges %}
+                <option value="{{ c.name }}" {% if filters.college == c.name %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Branch</label>
+            <select name="branch" id="branchSelect">
+              <option value="">All Branches</option>
+              {% for b in branches %}
+                <option value="{{ b.code }}" {% if filters.branch == b.code %}selected{% endif %}>{{ b.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Semester</label>
+            <select name="semester" id="semesterSelect">
+              <option value="">All Semesters</option>
+              {% for s in semesters %}
+                <option value="{{ s }}" {% if filters.semester == s|string %}selected{% endif %}>Semester {{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Subject</label>
+            <select name="subject" id="subjectSelect">
+              <option value="">All Subjects</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Year</label>
+            <select name="year">
+              <option value="">All Years</option>
+              {% for y in years %}
+                <option value="{{ y }}" {% if filters.year == y|string %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-group filter-actions">
+            <button type="submit" class="btn-primary"><i class="fas fa-search"></i> Search</button>
+            <a href="{{ url_for('papers.browse') }}" class="btn-ghost">Clear</a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results-header">
+      <span class="results-count">
+        {% if total %}
+          {{ total }} paper{% if total != 1 %}s{% endif %} found
+          {% if not searched %}(all approved papers){% endif %}
+        {% else %}
+          No papers found
+        {% endif %}
+      </span>
+      {% if results %}
+        <span class="results-sub">Click a row to preview · Download saves the PDF</span>
+      {% endif %}
+    </div>
+
+    {% if results %}
+      <div class="papers-list">
+        {% for paper in results %}
+          <div class="paper-row" onclick="window.location='{{ url_for('papers.view', paper_id=paper._id) }}'">
+            <div class="paper-icon"><i class="fas fa-file-pdf"></i></div>
+            <div class="paper-info">
+              <strong>
+                {{ paper.subject }}
+                {% if paper._id in bookmarks %}<i class="fas fa-bookmark saved-flag" title="Saved"></i>{% endif %}
+              </strong>
+              <div class="paper-meta">
+                <span><i class="fas fa-university"></i> {{ paper.college }}</span>
+                <span><i class="fas fa-code-branch"></i> {{ paper.branch }}</span>
+                <span><i class="fas fa-layer-group"></i> Semester {{ paper.semester }}</span>
+              </div>
+            </div>
+            <div class="paper-stats">
+              <span class="pstat-chip" title="Year"><i class="fas fa-calendar"></i> {{ paper.year }}</span>
+              <span class="pstat-chip" title="Average rating"><i class="fas fa-star star"></i> {{ paper.rating_avg if paper.rating_count else '–' }}</span>
+              <span class="pstat-chip" title="Downloads"><i class="fas fa-download"></i> {{ paper.downloads or 0 }}</span>
+              <span class="pstat-chip" title="Upvotes"><i class="fas fa-thumbs-up"></i> {{ paper.upvotes_count or 0 }}</span>
+            </div>
+            {% if paper.filename %}
+              <a href="{{ url_for('papers.download', paper_id=paper._id) }}"
+                 class="btn-download" onclick="event.stopPropagation()">
+                <i class="fas fa-download"></i> Download
+              </a>
+            {% else %}
+              <span class="btn-download disabled" title="Sample paper – no file attached">
+                <i class="fas fa-eye"></i> Sample
+              </span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- PAGINATION -->
+      {% if total_pages > 1 %}
+        <nav class="pagination">
+          {% if page > 1 %}
+            <a class="page-link" href="{{ url_for('papers.browse', q=filters.q, college=filters.college, branch=filters.branch, semester=filters.semester, subject=filters.subject, year=filters.year, page=page-1) }}">
+              <i class="fas fa-chevron-left"></i> Prev
+            </a>
+          {% else %}
+            <span class="page-link disabled"><i class="fas fa-chevron-left"></i> Prev</span>
+          {% endif %}
+          <span class="page-status">Page {{ page }} of {{ total_pages }}</span>
+          {% if page < total_pages %}
+            <a class="page-link" href="{{ url_for('papers.browse', q=filters.q, college=filters.college, branch=filters.branch, semester=filters.semester, subject=filters.subject, year=filters.year, page=page+1) }}">
+              Next <i class="fas fa-chevron-right"></i>
+            </a>
+          {% else %}
+            <span class="page-link disabled">Next <i class="fas fa-chevron-right"></i></span>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state">
+        <i class="fas fa-search-minus"></i>
+        <h3>No papers found</h3>
+        <p>Try adjusting your filters or <a href="{{ url_for('papers.upload') }}">upload one</a> if you have it!</p>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+const branchSel = document.getElementById('branchSelect');
+const semSel = document.getElementById('semesterSelect');
+const subjectSel = document.getElementById('subjectSelect');
+const selectedSubject = "{{ filters.subject or '' }}";
+
+async function fetchSubjectsAndRender() {
+  const branch = branchSel.value;
+  const sem = semSel.value;
+  if (!branch || !sem) {
+    subjectSel.innerHTML = `<option value="">All Subjects</option>`;
+    subjectSel.disabled = true;
+    return;
+  }
+  subjectSel.disabled = false;
+  const resp = await fetch(`/api/subjects?branch=${encodeURIComponent(branch)}&semester=${encodeURIComponent(sem)}`);
+  const subjects = await resp.json();
+  const opts = subjects.map(s => {
+    const safe = String(s);
+    return `<option value="${safe}" ${safe === selectedSubject ? 'selected' : ''}>${safe}</option>`;
+  }).join('');
+  subjectSel.innerHTML = `<option value="">All Subjects</option>${opts}`;
+}
+
+[branchSel, semSel].forEach(el => el.addEventListener('change', fetchSubjectsAndRender));
+window.addEventListener('DOMContentLoaded', () => {
+  if (!branchSel.value || !semSel.value) subjectSel.disabled = true;
+  fetchSubjectsAndRender();
+});
+</script>
+{% endblock %}

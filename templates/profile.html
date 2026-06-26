@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}My Profile – PapersNav{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="section-container">
+    <h1><i class="fas fa-user-circle"></i> {{ user.name }}</h1>
+    <p>{{ user.email }} · <span class="role-tag">{{ user.role }}</span>{% if user.college %} · {{ user.college }}{% endif %}</p>
+  </div>
+</section>
+
+<section class="profile-section">
+  <div class="section-container">
+
+    <div class="profile-stats">
+      <div class="pstat"><span class="pstat-num">{{ counts.total }}</span><span class="pstat-label">Uploads</span></div>
+      <div class="pstat"><span class="pstat-num">{{ counts.approved }}</span><span class="pstat-label">Approved</span></div>
+      <div class="pstat"><span class="pstat-num">{{ counts.pending }}</span><span class="pstat-label">Pending</span></div>
+      <div class="pstat"><span class="pstat-num">{{ saved|length }}</span><span class="pstat-label">Saved</span></div>
+    </div>
+
+    <h2 class="profile-heading"><i class="fas fa-cloud-upload-alt"></i> My Uploads</h2>
+    {% if my_uploads %}
+      <div class="papers-list">
+        {% for paper in my_uploads %}
+          <div class="paper-row" {% if paper.status == 'approved' %}onclick="window.location='{{ url_for('papers.view', paper_id=paper._id) }}'"{% endif %}>
+            <div class="paper-icon"><i class="fas fa-file-pdf"></i></div>
+            <div class="paper-info">
+              <strong>{{ paper.subject }}</strong>
+              <div class="paper-meta">
+                <span><i class="fas fa-university"></i> {{ paper.college }}</span>
+                <span><i class="fas fa-code-branch"></i> {{ paper.branch }}</span>
+                <span><i class="fas fa-layer-group"></i> Sem {{ paper.semester }}</span>
+                <span><i class="fas fa-calendar"></i> {{ paper.year }}</span>
+              </div>
+            </div>
+            <span class="status-pill status-{{ paper.status }}">{{ paper.status }}</span>
+            <form method="POST" action="{{ url_for('papers.delete_mine', paper_id=paper._id) }}"
+                  onclick="event.stopPropagation()"
+                  onsubmit="return confirm('Delete this upload permanently?')" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button class="btn-delete-mine" type="submit" title="Delete"><i class="fas fa-trash"></i></button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <h3>No uploads yet</h3>
+        <p><a href="{{ url_for('papers.upload') }}">Upload your first paper</a> to help others.</p>
+      </div>
+    {% endif %}
+
+    <h2 class="profile-heading"><i class="fas fa-bookmark"></i> Saved Papers</h2>
+    {% if saved %}
+      <div class="papers-list">
+        {% for paper in saved %}
+          <div class="paper-row" onclick="window.location='{{ url_for('papers.view', paper_id=paper._id) }}'">
+            <div class="paper-icon"><i class="fas fa-file-pdf"></i></div>
+            <div class="paper-info">
+              <strong>{{ paper.subject }}</strong>
+              <div class="paper-meta">
+                <span><i class="fas fa-university"></i> {{ paper.college }}</span>
+                <span><i class="fas fa-code-branch"></i> {{ paper.branch }}</span>
+                <span><i class="fas fa-layer-group"></i> Sem {{ paper.semester }}</span>
+              </div>
+            </div>
+            <div class="paper-year">{{ paper.year }}</div>
+            {% if paper.filename %}
+              <a href="{{ url_for('papers.download', paper_id=paper._id) }}" class="btn-download" onclick="event.stopPropagation()">
+                <i class="fas fa-download"></i> Download
+              </a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="fas fa-bookmark"></i>
+        <h3>Nothing saved yet</h3>
+        <p>Tap <strong>Save</strong> on any paper to keep it here. <a href="{{ url_for('papers.browse') }}">Browse papers</a>.</p>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}{{ paper.subject }} – PapersNav{% endblock %}
+{% block content %}
+
+<section class="page-hero small">
+  <div class="section-container">
+    <a href="{{ url_for('papers.browse') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Results</a>
+  </div>
+</section>
+
+<section class="view-section">
+  <div class="view-container">
+    <div class="view-sidebar">
+      <div class="paper-detail-card">
+        <div class="paper-detail-icon"><i class="fas fa-file-pdf"></i></div>
+        <h2>{{ paper.subject }}</h2>
+
+        <div class="rating-summary">
+          {% for i in range(1,6) %}
+            <i class="fa-star {% if i <= paper.rating_avg|round(0,'common')|int %}fas{% else %}far{% endif %}"></i>
+          {% endfor %}
+          <span>{{ paper.rating_avg if paper.rating_count else 'No ratings' }}{% if paper.rating_count %} ({{ paper.rating_count }}){% endif %}</span>
+        </div>
+
+        <div class="paper-detail-meta">
+          <div class="meta-row"><i class="fas fa-university"></i><span>{{ paper.college }}</span></div>
+          <div class="meta-row"><i class="fas fa-code-branch"></i><span>{{ paper.branch }}</span></div>
+          <div class="meta-row"><i class="fas fa-layer-group"></i><span>Semester {{ paper.semester }}</span></div>
+          <div class="meta-row"><i class="fas fa-calendar"></i><span>{{ paper.year }}</span></div>
+          <div class="meta-row"><i class="fas fa-download"></i><span>{{ paper.downloads }} downloads</span></div>
+          <div class="meta-row"><i class="fas fa-user"></i><span>Uploaded by: <strong>{{ paper.uploaded_by_name or 'Unknown' }}</strong></span></div>
+        </div>
+
+        <div style="margin-top:1.5rem">
+          {% if paper.filename %}
+            <a href="{{ url_for('papers.download', paper_id=paper._id) }}" class="btn-primary btn-full" style="margin-top:0">
+              <i class="fas fa-download"></i> Download PDF
+            </a>
+          {% else %}
+            <button class="btn-primary btn-full" disabled style="margin-top:0; opacity:.75; cursor:not-allowed;">
+              <i class="fas fa-eye"></i> Sample Only
+            </button>
+          {% endif %}
+
+          {% if session.get('user_id') %}
+            <div class="action-pair" style="margin-top:.85rem">
+              <button id="upvoteBtn" class="btn-outline {% if has_upvoted %}active{% endif %}" type="button" data-paper-id="{{ paper._id }}">
+                <i class="fas fa-thumbs-up"></i>
+                <span id="upvoteText">{{ 'Upvoted' if has_upvoted else 'Upvote' }}</span>
+                <span id="upvoteCount">{{ paper.upvotes_count or 0 }}</span>
+              </button>
+              <button id="bookmarkBtn" class="btn-ghost {% if is_bookmarked %}active{% endif %}" type="button" data-paper-id="{{ paper._id }}">
+                <i class="{% if is_bookmarked %}fas{% else %}far{% endif %} fa-bookmark"></i>
+                <span id="bookmarkText">{{ 'Saved' if is_bookmarked else 'Save' }}</span>
+              </button>
+            </div>
+
+            <form method="POST" action="{{ url_for('papers.rate', paper_id=paper._id) }}" class="rate-form" id="rateForm">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <span class="rate-label">Your rating:</span>
+              <div class="star-input" id="starInput">
+                {% for i in range(1,6) %}
+                  <button type="submit" name="value" value="{{ i }}"
+                          class="star-btn {% if my_rating and i <= my_rating %}selected{% endif %}"
+                          data-value="{{ i }}" aria-label="{{ i }} star">
+                    <i class="fa-star {% if my_rating and i <= my_rating %}fas{% else %}far{% endif %}"></i>
+                  </button>
+                {% endfor %}
+              </div>
+            </form>
+          {% else %}
+            <a href="{{ url_for('auth.login', next=request.path) }}" class="btn-outline btn-full" style="margin-top:.85rem">
+              <i class="fas fa-sign-in-alt"></i> Log in to vote, save &amp; rate
+            </a>
+          {% endif %}
+        </div>
+
+        <a href="{{ url_for('papers.browse') }}" class="btn-ghost btn-full" style="margin-top:.75rem">
+          <i class="fas fa-search"></i> Find More Papers
+        </a>
+      </div>
+    </div>
+
+    <div class="view-main">
+      {% if paper.filename %}
+        {% set pdf_url = url_for('static', filename='uploads/' + paper.filename) %}
+        <div class="pdf-viewer-wrapper">
+          <div class="pdf-toolbar">
+            <span class="pdf-name"><i class="fas fa-file-pdf"></i> {{ paper.subject }} – {{ paper.year }}.pdf</span>
+            <div class="pdf-actions">
+              <a href="{{ pdf_url }}" target="_blank" rel="noopener" class="btn-sm">
+                <i class="fas fa-external-link-alt"></i> Open
+              </a>
+              <a href="{{ url_for('papers.download', paper_id=paper._id) }}" class="btn-sm">
+                <i class="fas fa-download"></i> Download
+              </a>
+            </div>
+          </div>
+          <iframe class="pdf-frame" src="{{ pdf_url }}#view=FitH"
+                  title="{{ paper.subject }} {{ paper.year }} question paper" loading="lazy"></iframe>
+          <p class="pdf-fallback">
+            PDF not showing? <a href="{{ pdf_url }}" target="_blank" rel="noopener">Open in a new tab</a>
+            or <a href="{{ url_for('papers.download', paper_id=paper._id) }}">download it</a> — some mobile browsers can't preview inline.
+          </p>
+        </div>
+      {% else %}
+        <div class="preview-placeholder">
+          <i class="fas fa-file-pdf"></i>
+          <h3>Preview not available</h3>
+          <p>This is a sample entry. Download the paper to view its contents.</p>
+        </div>
+      {% endif %}
+
+      <!-- COMMENTS -->
+      <div class="comments-card">
+        <h3><i class="fas fa-comments"></i> Discussion ({{ comments|length }})</h3>
+
+        {% if session.get('user_id') %}
+          <form method="POST" action="{{ url_for('papers.comment', paper_id=paper._id) }}" class="comment-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <textarea name="text" rows="3" maxlength="1000" placeholder="Add a comment or tip about this paper…" required></textarea>
+            <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Post</button>
+          </form>
+        {% else %}
+          <p class="comment-login-hint">
+            <a href="{{ url_for('auth.login', next=request.path) }}">Log in</a> to join the discussion.
+          </p>
+        {% endif %}
+
+        <div class="comments-list">
+          {% for c in comments %}
+            <div class="comment">
+              <div class="comment-avatar">{{ (c.user_name or '?')[0]|upper }}</div>
+              <div class="comment-body">
+                <div class="comment-head">
+                  <strong>{{ c.user_name }}</strong>
+                  <span>{{ c.created_at.strftime('%d %b %Y, %H:%M') if c.created_at else '' }}</span>
+                </div>
+                <p>{{ c.text }}</p>
+              </div>
+            </div>
+          {% else %}
+            <p class="comments-empty">No comments yet — be the first to share a tip.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const CSRF = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+  const upvoteBtn = document.getElementById('upvoteBtn');
+  if (upvoteBtn) {
+    const paperId = upvoteBtn.dataset.paperId;
+    const countEl = document.getElementById('upvoteCount');
+    const textEl = document.getElementById('upvoteText');
+    upvoteBtn.addEventListener('click', async () => {
+      try {
+        const resp = await fetch(`/paper/${encodeURIComponent(paperId)}/upvote`, {
+          method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF }
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(data.error || 'Upvote failed'); return; }
+        if (typeof data.upvotes_count !== 'undefined') countEl.textContent = data.upvotes_count;
+        textEl.textContent = data.upvoted ? 'Upvoted' : 'Upvote';
+        upvoteBtn.classList.toggle('active', !!data.upvoted);
+      } catch (e) { alert('Upvote failed'); }
+    });
+  }
+
+  const bookmarkBtn = document.getElementById('bookmarkBtn');
+  if (bookmarkBtn) {
+    const paperId = bookmarkBtn.dataset.paperId;
+    const icon = bookmarkBtn.querySelector('i');
+    const textEl = document.getElementById('bookmarkText');
+    bookmarkBtn.addEventListener('click', async () => {
+      try {
+        const resp = await fetch(`/paper/${encodeURIComponent(paperId)}/bookmark`, {
+          method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF }
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) { alert(data.error || 'Action failed'); return; }
+        const saved = !!data.bookmarked;
+        icon.className = (saved ? 'fas' : 'far') + ' fa-bookmark';
+        textEl.textContent = saved ? 'Saved' : 'Save';
+        bookmarkBtn.classList.toggle('active', saved);
+      } catch (e) { alert('Action failed'); }
+    });
+  }
+
+  // Hover preview for the star rating
+  const starInput = document.getElementById('starInput');
+  if (starInput) {
+    const stars = Array.from(starInput.querySelectorAll('.star-btn'));
+    const paint = (upTo) => stars.forEach(s => {
+      const i = s.querySelector('i');
+      i.className = 'fa-star ' + (Number(s.dataset.value) <= upTo ? 'fas' : 'far');
+    });
+    stars.forEach(s => {
+      s.addEventListener('mouseenter', () => paint(Number(s.dataset.value)));
+    });
+    starInput.addEventListener('mouseleave', () => {
+      const selected = stars.filter(s => s.classList.contains('selected')).length;
+      paint(selected);
+    });
+  }
+})();
+</script>
+{% endblock %}
