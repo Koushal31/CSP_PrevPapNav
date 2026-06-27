@@ -6,6 +6,17 @@
   <meta name="csrf-token" content="{{ csrf_token() }}"/>
   <meta name="theme-color" content="#C0182A"/>
   <title>{% block title %}Previous Papers Navigator{% endblock %}</title>
+  <script>
+    /* Set theme before paint to avoid a flash of the wrong theme. */
+    (function () {
+      try {
+        var k = 'papersnav-theme';
+        var saved = localStorage.getItem(k);
+        var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', saved || (dark ? 'dark' : 'light'));
+      } catch (e) {}
+    })();
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
@@ -20,28 +31,31 @@
       <i class="fas fa-graduation-cap"></i>
       <span>PapersNav</span>
     </a>
-    <button class="nav-toggle" id="navToggle"><i class="fas fa-bars"></i></button>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="{{ url_for('main.home') }}" class="{% if request.endpoint=='main.home' %}active{% endif %}">Home</a></li>
-      <li><a href="{{ url_for('papers.browse') }}" class="{% if request.endpoint=='papers.browse' %}active{% endif %}">Papers</a></li>
-      <li><a href="{{ url_for('community.index') }}" class="{% if request.endpoint and request.endpoint.startswith('community.') %}active{% endif %}">Community</a></li>
-      <li><a href="{{ url_for('main.contact') }}" class="{% if request.endpoint=='main.contact' %}active{% endif %}">Contact</a></li>
-      {% if session.get('user_id') %}
-        <li><a href="{{ url_for('papers.upload') }}" class="{% if request.endpoint=='papers.upload' %}active{% endif %}">Upload Paper</a></li>
-        <li><a href="{{ url_for('auth.profile') }}" class="{% if request.endpoint=='auth.profile' %}active{% endif %}">My Profile</a></li>
-        <li><a href="{{ url_for('auth.account') }}" class="{% if request.endpoint=='auth.account' %}active{% endif %}">Account</a></li>
-        {% if session.get('role') == 'admin' %}
-          <li><a href="{{ url_for('admin.dashboard') }}" class="admin-link"><i class="fas fa-shield-alt"></i> Admin</a></li>
+    <div class="nav-right">
+      <ul class="nav-links" id="navLinks">
+        <li><a href="{{ url_for('main.home') }}" class="{% if request.endpoint=='main.home' %}active{% endif %}">Home</a></li>
+        <li><a href="{{ url_for('papers.browse') }}" class="{% if request.endpoint=='papers.browse' %}active{% endif %}">Papers</a></li>
+        <li><a href="{{ url_for('community.index') }}" class="{% if request.endpoint and request.endpoint.startswith('community.') %}active{% endif %}">Community</a></li>
+        <li><a href="{{ url_for('main.contact') }}" class="{% if request.endpoint=='main.contact' %}active{% endif %}">Contact</a></li>
+        {% if session.get('user_id') %}
+          <li><a href="{{ url_for('papers.upload') }}" class="{% if request.endpoint=='papers.upload' %}active{% endif %}">Upload</a></li>
+          <li><a href="{{ url_for('auth.profile') }}" class="{% if request.endpoint=='auth.profile' %}active{% endif %}">Profile</a></li>
+          <li><a href="{{ url_for('auth.account') }}" class="{% if request.endpoint=='auth.account' %}active{% endif %}">Account</a></li>
+          {% if session.get('role') == 'admin' %}
+            <li><a href="{{ url_for('admin.dashboard') }}" class="admin-link"><i class="fas fa-shield-alt"></i> Admin</a></li>
+          {% endif %}
+          <li class="nav-user">
+            <span><i class="fas fa-user-circle"></i> {{ session.get('name','User') }}</span>
+            <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
+          </li>
+        {% else %}
+          <li><a href="{{ url_for('main.about') }}" class="{% if request.endpoint=='main.about' %}active{% endif %}">About</a></li>
+          <li><a href="{{ url_for('auth.login') }}" class="btn-nav-login">Login</a></li>
         {% endif %}
-        <li class="nav-user">
-          <span><i class="fas fa-user-circle"></i> {{ session.get('name','User') }}</span>
-          <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
-        </li>
-      {% else %}
-        <li><a href="{{ url_for('main.about') }}" class="{% if request.endpoint=='main.about' %}active{% endif %}">About</a></li>
-        <li><a href="{{ url_for('auth.login') }}" class="btn-nav-login">Login</a></li>
-      {% endif %}
-    </ul>
+      </ul>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle theme"><i class="fas fa-moon"></i></button>
+      <button class="nav-toggle" id="navToggle" type="button" aria-label="Menu"><i class="fas fa-bars"></i></button>
+    </div>
   </div>
 </nav>
 
@@ -50,7 +64,7 @@
   {% if messages %}
     <div class="flash-container">
       {% for cat, msg in messages %}
-        <div class="flash flash-{{ cat }}">{{ msg }} <button onclick="this.parentElement.remove()">×</button></div>
+        <div class="flash flash-{{ cat }}">{{ msg }} <button onclick="this.parentElement.remove()" aria-label="Dismiss">×</button></div>
       {% endfor %}
     </div>
   {% endif %}
@@ -71,11 +85,28 @@
       <a href="{{ url_for('main.about') }}">About</a>
       <a href="{{ url_for('main.contact') }}">Contact</a>
     </div>
-    <p class="footer-copy">© 2024 Previous Papers Navigator. Built for students.</p>
+    <p class="footer-copy">© 2024 Previous Papers Navigator · Built for students.</p>
   </div>
 </footer>
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    function icon() {
+      if (btn) btn.innerHTML = root.getAttribute('data-theme') === 'dark'
+        ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    }
+    icon();
+    if (btn) btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('papersnav-theme', next); } catch (e) {}
+      icon();
+    });
+  })();
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
