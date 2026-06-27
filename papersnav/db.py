@@ -87,6 +87,13 @@ class Database:
     def messages(self):
         return self.handle["messages"]
 
+    @property
+    def fs(self):
+        """GridFS handle for storing uploaded PDFs in MongoDB (persistent)."""
+        import gridfs
+
+        return gridfs.GridFS(self.handle)
+
     # ── Indexes ───────────────────────────────────────────────────────────
     def _ensure_indexes(self):
         try:

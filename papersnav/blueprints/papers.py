@@ -10,6 +10,7 @@ import uuid
 
 from flask import (
     Blueprint,
+    Response,
     abort,
     current_app,
     flash,
@@ -39,6 +40,51 @@ from ..utils import allowed_file, to_object_id, utcnow
 logger = logging.getLogger("papersnav")
 
 papers_bp = Blueprint("papers", __name__)
+
+
+def serve_paper_pdf(paper, as_attachment):
+    """Return a Flask response streaming a paper's PDF.
+
+    Prefers GridFS (persistent, used for all new uploads); falls back to a
+    legacy file on disk for older papers. Returns None if no file is found.
+    """
+    file_id = paper.get("file_id")
+    if file_id:
+        gid = to_object_id(file_id)
+        if gid is not None and db.fs.exists(gid):
+            data = db.fs.get(gid).read()
+            fname = secure_filename(paper.get("filename") or "paper.pdf")
+            disposition = "attachment" if as_attachment else "inline"
+            return Response(
+                data,
+                mimetype="application/pdf",
+                headers={"Content-Disposition": f'{disposition}; filename="{fname}"'},
+            )
+    # Legacy: file stored on disk
+    if paper.get("filename"):
+        safe = secure_filename(paper["filename"])
+        filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], safe)
+        if os.path.exists(filepath):
+            return send_from_directory(
+                current_app.config["UPLOAD_FOLDER"], safe, as_attachment=as_attachment
+            )
+    return None
+
+
+def delete_paper_file(paper):
+    """Remove a paper's stored PDF from GridFS (or legacy disk). Best-effort."""
+    file_id = paper.get("file_id")
+    if file_id:
+        gid = to_object_id(file_id)
+        if gid is not None:
+            try:
+                db.fs.delete(gid)
+            except Exception as exc:
+                logger.warning("GridFS delete failed: %s", exc)
+    elif paper.get("filename"):
+        filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], paper["filename"])
+        if os.path.exists(filepath):
+            os.remove(filepath)
 
 
 # ── Browse / search ─────────────────────────────────────────────────────────
@@ -220,7 +266,13 @@ def upload():
         filename = secure_filename(
             f"{college_name}_{branch}_sem{semester}_{subject}_{year}_{suffix}.pdf"
         )
-        file.save(os.path.join(current_app.config["UPLOAD_FOLDER"], filename))
+        # Store the PDF in GridFS (MongoDB) so it persists across deploys.
+        file_id = db.fs.put(
+            file.read(),
+            filename=filename,
+            content_type="application/pdf",
+            uploaded_by=session.get("email"),
+        )
 
         db.papers.insert_one(
             {
@@ -230,6 +282,7 @@ def upload():
                 "year": year_num,
                 "college": college_name,
                 "filename": filename,
+                "file_id": str(file_id),
                 "status": "pending",
                 "uploaded_by": session.get("email"),
                 "uploaded_at": utcnow(),
@@ -280,6 +333,19 @@ def view(paper_id):
     )
 
 
+# ── Inline file (for the in-page PDF viewer) ─────────────────────────────────
+@papers_bp.route("/paper/<paper_id>/file")
+def file(paper_id):
+    oid = to_object_id(paper_id)
+    paper = db.papers.find_one({"_id": oid, "status": "approved"}) if oid else None
+    if not paper:
+        abort(404)
+    resp = serve_paper_pdf(paper, as_attachment=False)
+    if resp is None:
+        abort(404)
+    return resp
+
+
 # ── Download ─────────────────────────────────────────────────────────────────
 @papers_bp.route("/download/<paper_id>")
 def download(paper_id):
@@ -292,16 +358,10 @@ def download(paper_id):
         if not paper:
             return jsonify({"error": "Not found"}), 404
 
-        if paper.get("filename"):
-            safe_name = secure_filename(paper["filename"])
-            filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], safe_name)
-            if os.path.exists(filepath):
-                db.papers.update_one({"_id": oid}, {"$inc": {"downloads": 1}})
-                return send_from_directory(
-                    current_app.config["UPLOAD_FOLDER"], safe_name, as_attachment=True
-                )
-            flash("The requested file is not available on the server.", "error")
-            return redirect(url_for("papers.view", paper_id=paper_id))
+        resp = serve_paper_pdf(paper, as_attachment=True)
+        if resp is not None:
+            db.papers.update_one({"_id": oid}, {"$inc": {"downloads": 1}})
+            return resp
 
         flash("This paper does not have an attached PDF.", "warning")
         return redirect(url_for("papers.view", paper_id=paper_id))
@@ -404,10 +464,7 @@ def delete_mine(paper_id):
     # Only the uploader may delete their own submission.
     if paper.get("uploaded_by") != session.get("email"):
         abort(403)
-    if paper.get("filename"):
-        filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], paper["filename"])
-        if os.path.exists(filepath):
-            os.remove(filepath)
+    delete_paper_file(paper)
     db.papers.delete_one({"_id": oid})
     db.comments.delete_many({"paper_id": paper_id})
     flash("Your paper was deleted.", "success")

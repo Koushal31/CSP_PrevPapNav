@@ -83,7 +83,7 @@
 
     <div class="view-main">
       {% if paper.filename %}
-        {% set pdf_url = url_for('static', filename='uploads/' + paper.filename) %}
+        {% set pdf_url = url_for('papers.file', paper_id=paper._id) %}
         <div class="pdf-viewer-wrapper">
           <div class="pdf-toolbar">
             <span class="pdf-name"><i class="fas fa-file-pdf"></i> {{ paper.subject }} – {{ paper.year }}.pdf</span>

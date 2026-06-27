@@ -21,6 +21,7 @@ from ..db import db
 from ..decorators import admin_required
 from ..models import enrich_paper
 from ..utils import send_email, stringify_id, to_object_id
+from .papers import delete_paper_file, serve_paper_pdf
 
 logger = logging.getLogger("papersnav")
 
@@ -119,28 +120,38 @@ def delete_paper(paper_id):
     if oid is None:
         abort(404)
     paper = db.papers.find_one({"_id": oid})
-    if paper and paper.get("filename"):
-        filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], paper["filename"])
-        if os.path.exists(filepath):
-            os.remove(filepath)
+    if paper:
+        delete_paper_file(paper)
     db.papers.delete_one({"_id": oid})
     db.comments.delete_many({"paper_id": paper_id})
     return redirect(request.referrer or url_for("admin.papers"))
+
+
+@admin_bp.route("/paper/<paper_id>/file")
+@admin_required
+def paper_file(paper_id):
+    """Inline PDF for the admin review viewer (any status)."""
+    oid = to_object_id(paper_id)
+    paper = db.papers.find_one({"_id": oid}) if oid else None
+    if not paper:
+        abort(404)
+    resp = serve_paper_pdf(paper, as_attachment=False)
+    if resp is None:
+        abort(404)
+    return resp
 
 
 @admin_bp.route("/paper/<paper_id>/download")
 @admin_required
 def download_paper(paper_id):
     oid = to_object_id(paper_id)
-    if oid is None:
+    paper = db.papers.find_one({"_id": oid}) if oid else None
+    if not paper:
         abort(404)
-    paper = db.papers.find_one({"_id": oid})
-    if not paper or not paper.get("filename"):
+    resp = serve_paper_pdf(paper, as_attachment=True)
+    if resp is None:
         abort(404)
-    filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], paper["filename"])
-    if not os.path.exists(filepath):
-        abort(404)
-    return send_from_directory(current_app.config["UPLOAD_FOLDER"], paper["filename"], as_attachment=True)
+    return resp
 
 
 # ── Colleges ─────────────────────────────────────────────────────────────────

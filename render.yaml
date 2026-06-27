@@ -3,20 +3,32 @@ services:
     name: csp-prevpapnav
     env: python
     plan: free
+    region: oregon
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn wsgi:app
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     healthCheckPath: /healthz
     envVars:
+      # ── Non-secret config (committed) ──────────────────────────────────
       - key: FLASK_ENV
         value: production
       - key: PYTHON_VERSION
         value: "3.11.0"
-      - key: SECRET_KEY
-        generateValue: true        # Render generates a strong secret
-      - key: MONGO_URI
-        sync: false                # set in the Render dashboard
       - key: MONGO_DB_NAME
         value: previous_papers_navigator
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USE_TLS
+        value: "true"
+      - key: MAIL_USE_SSL
+        value: "false"
+      # ── Auto-generated ─────────────────────────────────────────────────
+      - key: SECRET_KEY
+        generateValue: true
+      # ── Secrets / personal — set these in the Render dashboard ─────────
+      - key: MONGO_URI
+        sync: false
       - key: ADMIN_EMAILS
         sync: false
       - key: ALLOWED_EMAIL_DOMAINS
@@ -26,8 +38,6 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
-        sync: false
-      - key: MAIL_SERVER
         sync: false
       - key: MAIL_USERNAME
         sync: false
